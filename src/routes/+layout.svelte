@@ -8,7 +8,9 @@
   export let data;
   inject({ mode: dev ? 'development' : 'production'})
 </script>
-
+<svelte:head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</svelte:head>
 <Header />
   {#key data.url}
     <div 
