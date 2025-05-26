@@ -4,10 +4,14 @@
   import type { Solution } from "../../types/Solution.ts";
   import { Square, CheckSquare } from 'lucide-svelte';
 
-  export let solution: Solution;
-  export let strategy: string;
+  interface Props {
+    solution: Solution;
+    strategy: string;
+  }
 
-  let completedSteps: boolean[] = new Array(solution.steps.length).fill(false);
+  let { solution, strategy }: Props = $props();
+
+  let completedSteps: boolean[] = $state(new Array(solution.steps.length).fill(false));
   
   const dispatch = createEventDispatcher();
 
@@ -17,7 +21,7 @@
     dispatch('progress', { completed: completedSteps.filter(Boolean).length, total: steps.length });
   }
 
-  $: progress = (completedSteps.filter(Boolean).length / solution.steps.length) * 100;
+  let progress = $derived((completedSteps.filter(Boolean).length / solution.steps.length) * 100);
 </script>
 
 <div class="checklist-guide">
@@ -34,7 +38,7 @@
       <li
         class="step-item"
         class:completed={completedSteps[i]}
-        on:click={() => toggleStep(i)}
+        onclick={() => toggleStep(i)}
         in:fade={{ duration: 200, delay: i * 100 }}>
         <div class="step-checkbox">
           {#if completedSteps[i]}

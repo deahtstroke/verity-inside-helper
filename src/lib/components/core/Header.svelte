@@ -1,119 +1,109 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { Theme } from "../../Enums/Theme.ts";
-  import { Menu, X, Moon, Sun } from 'lucide-svelte';
-  import Logo from "./Logo.svelte";
-  import ThemeButton from "../buttons/ThemeButton.svelte";
-  import SideMenu from "../buttons/SideMenu.svelte";
-  import FastStratToggle from "../buttons/FastStratToggle.svelte";
-  import { strategyModeStore } from "../stores/StrategyModeStore.ts";
+	import { onMount } from 'svelte';
+	import { Menu } from 'lucide-svelte';
+	import ThemeButton from '../buttons/ThemeButton.svelte';
+	import SideMenu from '../buttons/SideMenu.svelte';
+	import StrategyToggle from '../buttons/StrategyToggle.svelte';
 
-  let isMobileMenuOpen: boolean = false;
-  let isFastStratgy: boolean = false;
-  let windowWidth = 0;
+	let isMobileMenuOpen: boolean = $state(false);
+	let windowWidth = $state(0);
 
-  onMount(() => {
-    const handleResize = () => {
-      windowWidth = window.innerWidth;
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  });
+	onMount(() => {
+		const handleResize = () => {
+			windowWidth = window.innerWidth;
+		};
+		window.addEventListener('resize', handleResize);
+		handleResize();
+		return () => window.removeEventListener('resize', handleResize);
+	});
 
-  $: strategyModeStore.subscribe(value => {
-    isFastStratgy = value;
-  })
-
-  function toggleMobileMenu() {
-    isMobileMenuOpen = !isMobileMenuOpen;
-  }
+	function toggleMobileMenu() {
+		isMobileMenuOpen = !isMobileMenuOpen;
+	}
 </script>
 
 <header>
-  <div class="header-content">
-      <div class="logo">
-        <a href="/"><span>Verity Inside Helper</span></a>
-      </div>
-    {#if windowWidth > 768}
-      <nav class="desktop-nav">
-        <a href="/about">About</a>
-        <a href="https://github.com/dvillavicencio/verity-inside-helper"
-          target="_blank"
-          rel="noopener noreferrer">
-          Source
-        </a>
-        <FastStratToggle />
-        <ThemeButton />
-      </nav>
-    {:else} 
-      <div class="mobile-controls">
-        <ThemeButton />
-        <button on:click={toggleMobileMenu} class="menu-toggle" aria-label="Toggle menu">
-          <Menu />
-        </button>
-      </div>
-    {/if}
-  </div>
+	<div class="header-content">
+		<div class="logo">
+			<a href="/"><span>Verity Inside Helper</span></a>
+		</div>
+		{#if windowWidth > 768}
+			<nav class="desktop-nav">
+				<a href="/about">About</a>
+				<a
+					href="https://github.com/dvillavicencio/verity-inside-helper"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Source
+				</a>
+				<StrategyToggle />
+				<ThemeButton />
+			</nav>
+		{:else}
+			<div class="mobile-controls">
+				<ThemeButton />
+				<button onclick={toggleMobileMenu} class="menu-toggle" aria-label="Toggle menu">
+					<Menu />
+				</button>
+			</div>
+		{/if}
+	</div>
 
-  <SideMenu bind:menuOpen={isMobileMenuOpen}/> 
+	<SideMenu bind:menuOpen={isMobileMenuOpen} />
 </header>
 
 <style>
-  header {
-    position: relative;
-    z-index: 1000;
-    background-color: var(--background-color); 
-  }
+	header {
+		position: relative;
+		z-index: 1000;
+		background-color: var(--background-color);
+	}
 
-  a {
-    text-decoration: none;
-  }
+	a {
+		text-decoration: none;
+	}
 
-  .header-content {
-    max-width: 48rem;
-    margin: 0 auto;
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+	.header-content {
+		max-width: 48rem;
+		margin: 0 auto;
+		padding: 1rem;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
 
-  .logo span {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--text-color);
-  }
+	.logo span {
+		font-size: 1.5rem;
+		font-weight: bold;
+		color: var(--text-color);
+	}
 
-  .menu-toggle {
-    background-color: var(--background-color);
-    border-style: none;
-  }
+	.menu-toggle {
+		background-color: var(--background-color);
+		border-style: none;
+	}
 
-  .desktop-nav {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
+	.desktop-nav {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
 
-  .desktop-nav a {
-    text-decoration: none;
-    color: var(--text-color);
-  }
+	.desktop-nav a {
+		text-decoration: none;
+		color: var(--text-color);
+	}
 
-  .mobile-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
+	.mobile-controls {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
 
-  :global(svg) {
-    stroke: var(--outline-color);
-  }
-
-  @media (max-width: 768px) {
-    .desktop-nav {
-      display: none;
-    }
-  }
+	@media (max-width: 768px) {
+		.desktop-nav {
+			display: none;
+		}
+	}
 </style>

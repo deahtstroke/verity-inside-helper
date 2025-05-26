@@ -1,5 +1,5 @@
 export type Solution = {
   title: string;
-  description: String;
-  steps: String[];
+  description: string;
+  steps: string[];
 }

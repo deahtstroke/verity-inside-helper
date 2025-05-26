@@ -1,5 +1,5 @@
 <script lang="ts">
-  const GITHUB_URL: String = "https://github.com/dvillavicencio";
+  const GITHUB_URL: string = "https://github.com/dvillavicencio";
 </script>
 
 <style>

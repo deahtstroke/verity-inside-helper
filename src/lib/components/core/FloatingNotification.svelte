@@ -2,15 +2,19 @@
   import { fly } from 'svelte/transition';
   import { X } from 'lucide-svelte';
 
-  export let message: string;
-  export let visible: boolean;
-  export let onClose: () => void;
+  interface Props {
+    message: string;
+    visible: boolean;
+    onClose: () => void;
+  }
+
+  let { message, visible, onClose }: Props = $props();
 </script>
 
 {#if visible}
   <div class="notification-container" transition:fly={{ y: 50, duration: 300 }}>
     <p>{message}</p>
-    <button on:click={onClose} aria-label="Close notification">
+    <button onclick={onClose} aria-label="Close notification">
       <X size={20} />
     </button>
   </div>

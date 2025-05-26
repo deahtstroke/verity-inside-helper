@@ -5,7 +5,7 @@
   import { inject } from "@vercel/analytics";
   import { fly } from "svelte/transition";
 
-  export let data;
+  let { data, children } = $props();
   inject({ mode: dev ? 'development' : 'production'})
 </script>
 <svelte:head>
@@ -16,7 +16,7 @@
     <div 
       in:fly={{y: -50, delay: 300, duration: 300}}
       out:fly={{y: -50, duration: 300}}>
-      <slot />
+      {@render children?.()}
     </div>
   {/key}
 <Footer />

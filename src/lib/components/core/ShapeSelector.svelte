@@ -1,15 +1,21 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { createEventDispatcher } from 'svelte';
   import { Shape } from '../../Enums/Shape';
   import { Triangle, Circle, Square } from 'lucide-svelte';
 
-  export let resetEnabled: boolean;
+  interface Props {
+    resetEnabled: boolean;
+  }
+
+  let { resetEnabled }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     shapes: Shape[];
   }>();
 
-  let selectedShapes: (Shape | null)[] = [null, null];
+  let selectedShapes: (Shape | null)[] = $state([null, null]);
 
   const shapeOptions = [
     { type: Shape.Triangle, icon: Triangle, label: 'Triangle' },
@@ -30,9 +36,11 @@
     }
   }
 
-  $: if(resetEnabled === false) {
-    selectedShapes = [null, null];
-  }
+  run(() => {
+    if(resetEnabled === false) {
+      selectedShapes = [null, null];
+    }
+  });
 
   function removeShape(index: number) {
     selectedShapes[index] = null;
@@ -52,11 +60,12 @@
     {#each selectedShapes as selectedShape, index}
       <div 
         class="shape-slot" 
-        on:click={() => removeShape(index)} 
+        onclick={() => removeShape(index)} 
         aria-label={selectedShape ? `Remove ${getShapeName(selectedShape)}` : `Empty slot ${index + 1}`}
       >
         {#if selectedShape !== null}
-          <svelte:component this={shapeOptions.find(s => s.type === selectedShape)?.icon} size={48} />
+          {@const SvelteComponent = shapeOptions.find(s => s.type === selectedShape)?.icon}
+          <SvelteComponent size={48} />
         {:else}
           <div class="empty-slot">?</div>
         {/if}
@@ -66,12 +75,13 @@
 
   <div class="shape-options">
     {#each shapeOptions as { type, icon, label }}
+      {@const SvelteComponent_1 = icon}
       <button 
         class="shape-button" 
-        on:click={() => selectShape(type)}
+        onclick={() => selectShape(type)}
         aria-label={`Select ${label}`}
       >
-        <svelte:component this={icon} size={32} />
+        <SvelteComponent_1 size={32} />
       </button>
     {/each}
   </div>

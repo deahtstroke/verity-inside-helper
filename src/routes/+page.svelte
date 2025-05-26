@@ -1,21 +1,27 @@
 <script lang="ts">
-import Main from "$lib/components/core/Main.svelte";
+	import StatueLocation from '$lib/components/core/StatueLocation.svelte';
+	import StatueShape from '$lib/components/core/StatueShape.svelte';
 
-  function scrollToTop() {
-    let top = document.querySelector("header");
-    if(top) {
-      top.scrollIntoView({ behavior: "smooth", inline: "start", block: "start"});
-    }
-  }
+	$effect(() => {
+		let top = document.querySelector('header');
+		if (top) {
+			top.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'start' });
+		}
+	});
 </script>
 
-<style>
-div:last-of-type {
-  margin-top: auto;
-}
-</style>
-
 <div class="main-container">
-  <Main on:reset={scrollToTop}/>
+	<StatueShape />
+	<StatueLocation />
 </div>
 
+<style>
+	.main-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	div:last-of-type {
+		margin-top: auto;
+	}
+</style>

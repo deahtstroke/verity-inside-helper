@@ -1,213 +1,271 @@
 <script lang="ts">
-import StatueLocationSelector from "./StatueLocationSelector.svelte";
-import StatueShapeSelector from "./StatueShapeSelector.svelte";
-import ShapeSelector from "./ShapeSelector.svelte";
-import RefreshButton from "../buttons/RefreshButton.svelte";
-import PlayersDoubleShapesSelector from "./PlayersDoubleShapesSelector.svelte";
-import FloatingNotification from "./FloatingNotification.svelte";
-import ChecklistStepGuide from "./ChecklistStepGuide.svelte";
-import { fly } from "svelte/transition";
-import { onMount, createEventDispatcher } from "svelte";
-import { Shape } from "../../Enums/Shape.ts";
-import { StatueLocation } from "../../Enums/StatueLocation.ts";
-import { DoubledPlayers } from "../../Enums/DoubledPlayers.ts";
-import { strategyModeStore } from "../stores/StrategyModeStore.ts";
-import * as shapeUtils from "../../utils/ShapeUtils.ts";
-import * as solutions from "../../utils/SolutionUtils.ts";
+	import { run } from 'svelte/legacy';
 
-const RESET_EVENT: String = "reset";
+	import StatueLocationSelector from './StatueLocationSelector.svelte';
+	import StatueShapeSelector from './StatueShapeSelector.svelte';
+	import ShapeSelector from './ShapeSelector.svelte';
+	import RefreshButton from '../buttons/RefreshButton.svelte';
+	import PlayersDoubleShapesSelector from './PlayersDoubleShapesSelector.svelte';
+	import FloatingNotification from './FloatingNotification.svelte';
+	import ChecklistStepGuide from './ChecklistStepGuide.svelte';
+	import { fly } from 'svelte/transition';
+	import { createEventDispatcher } from 'svelte';
+	import { Shape } from '../../Enums/Shape';
+	import { StatueLocation } from '../../Enums/StatueLocation';
+	import { DoubledPlayers } from '../../Enums/DoubledPlayers';
+	import * as strategyState from '../state/strategyState.svelte';
+	import * as shapeUtils from '../../utils/ShapeUtils';
+	import * as solutions from '../../utils/SolutionUtils';
 
-const dispatch = createEventDispatcher();
+	const RESET_EVENT: string = 'reset';
 
-let shapes: Shape[] = [];
-let statueShape: Shape = null;
-let statueLocation: StatueLocation = null;
-let playersDoubled: DoubledPlayers = null;
+	let { onReset: boolean } = $props();
 
-let currentStep = 0;
-let completedSteps = 0;
-let totalSteps = 0;
+	interface MainState {
+		fastStrategy: boolean;
+		currentStep: number;
+		completedSteps: number;
+		totalSteps: number;
+		resetEnabled: boolean;
+		outputVisible: boolean;
+		shapesHeld: Shape[];
+		statueLocation: StatueLocation | null;
+		statueShape: Shape | null;
+		playersDoubled: DoubledPlayers | null;
+	}
 
-let resetEnabled: boolean = false;
-let outputVisible: boolean = false;
-let validShapes: boolean = true;
-let inputErrorPresent: boolean = false;
-let errorMessageVisible: boolean = false;
-let fastStrategy: boolean = false;
+	interface ErrorState {
+		validShapes: boolean;
+		inputErrorPresent: boolean;
+		errorMessageVisible: boolean;
+	}
 
-let outputContainer: HTMLElement;
-let inputContainer: HTMLElement;
-let container;
+	const dispatch = createEventDispatcher();
 
-let inputElements: HTMLElement[] = [];
+	let mainState = $state<MainState>({
+		fastStrategy: false,
+		currentStep: 0,
+		completedSteps: 0,
+		totalSteps: 0,
+		resetEnabled: false,
+		outputVisible: false,
+		shapesHeld: [],
+		statueLocation: null,
+		statueShape: null,
+		playersDoubled: null
+	});
 
-function scrollToStep(step: number) {
-  if(inputElements[step] && inputElements[step].scrollIntoView) {
-    inputElements[step].scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }
-}
+	let errorState = $state<ErrorState>({
+		validShapes: true,
+		inputErrorPresent: false,
+		errorMessageVisible: false
+	});
 
-function validateShapes(statueShape: Shape, shapesHeld: Shape[]): boolean {
-  let valid = shapesHeld.filter(item => item === statueShape);
-  return statueShape !== null && shapesHeld.length > 0 && valid.length != 0;
-}
+	let outputContainer: HTMLElement = $state();
 
-function reset() {
-  validShapes = true;
-  resetEnabled = false;
-  outputVisible = false;
-  statueLocation = null;
-  statueShape = null;
-  playersDoubled = null;
-  currentStep = 0;
-  inputElements = [];
+	let inputElements: HTMLElement[] = $state([]);
 
-  shapes = [];
-  dispatch(RESET_EVENT);
-}
+	function scrollToStep(step: number) {
+		if (inputElements[step] && inputElements[step].scrollIntoView) {
+			inputElements[step].scrollIntoView({ behavior: 'smooth', block: 'end' });
+		}
+	}
 
-function scrollToOutput() {
-  if(outputContainer) {
-    outputContainer.scrollIntoView({ behavior: "smooth" })
-  }
-}
+	function validateShapes(statueShape: Shape, shapesHeld: Shape[]): boolean {
+		let valid = shapesHeld.filter((item) => item === statueShape);
+		return statueShape !== null && shapesHeld.length > 0 && valid.length != 0;
+	}
 
-function errorMessageDescription(shapes: Shape[]): string {
-  if(shapes[0] === shapes[1]) {
-    return `If your statue is holding a ${statueShape}, you can never start with double ${shapes[0]}s on your wall`;
-  } else {
-    return `If your statue is holding a ${statueShape}, you can never start with ${shapeUtils.getOtherShapes(statueShape)[0]} and ${shapeUtils.getOtherShapes(statueShape)[1]} on your wall`;
-  }
-}
+	function reset() {
+		mainState.resetEnabled = false;
+		mainState.outputVisible = false;
+		mainState.statueLocation = null;
+		mainState.statueShape = null;
+		mainState.shapesHeld = [];
+		mainState.playersDoubled = null;
+		inputElements = [];
 
-function closeErrorMessage() {
-  errorMessageVisible = false;
-}
+		dispatch(RESET_EVENT);
+	}
 
-$: strategyModeStore.subscribe(value => {
-  fastStrategy = value;
-});
+	function scrollToOutput() {
+		if (outputContainer) {
+			outputContainer.scrollIntoView({ behavior: 'smooth' });
+		}
+	}
 
-$: if(currentStep > 0 && currentStep < inputElements.length) {
-  scrollToStep(currentStep);
-}
+	function errorMessageDescription(shapes: Shape[]): string {
+		if (shapes[0] === shapes[1]) {
+			return `If your statue is holding a ${mainState.statueShape}, you can never start with double ${shapes[0]}s on your wall`;
+		} else if (mainState.statueShape) {
+			let otherShapes: Shape[] = shapeUtils.getOtherShapes(mainState.statueShape);
+			return `If your statue is holding a ${mainState.statueShape}, you can never start with ${otherShapes[0]} and ${otherShapes[1]} on your wall`;
+		} else {
+			return 'There was an unexpected error. You need to pick the shape of your statue and your shapes in the wall.';
+		}
+	}
 
-$: if(outputContainer) {
-  scrollToOutput();
-}
+	function closeErrorMessage() {
+		errorState.errorMessageVisible = false;
+	}
 
-$: if(currentStep >= 1) {
-  resetEnabled = true;
-}
+	mainState.fastStrategy = strategyState.getStrategy();
 
-$: normalModeParams = statueLocation && statueShape && shapes && shapes.length == 2 && validateShapes(statueShape, shapes);
-$: fastModeParams = normalModeParams && playersDoubled;
+	run(() => {
+		if (mainState.currentStep > 0 && mainState.currentStep < inputElements.length) {
+			scrollToStep(mainState.currentStep);
+		}
+	});
 
-$: if(fastStrategy) {
-  outputVisible = fastModeParams && currentStep >= 4;
-} else {
-  outputVisible = normalModeParams  && currentStep >= 3;
-}
+	run(() => {
+		if (outputContainer) {
+			scrollToOutput();
+		}
+	});
 
-$: inputErrorPresent = statueShape && shapes.length == 2 && !validateShapes(statueShape, shapes);
+	run(() => {
+		if (mainState.currentStep >= 1) {
+			mainState.resetEnabled = true;
+		}
+	});
 
-$: errorMessageVisible = statueShape && shapes.length  && !validateShapes(statueShape, shapes);
+	let normalModeParams = $derived(
+		mainState.statueLocation &&
+			mainState.statueShape &&
+			mainState.shapesHeld &&
+			mainState.shapesHeld.length == 2 &&
+			validateShapes(mainState.statueShape, mainState.shapesHeld)
+	);
+	let fastModeParams = $derived(normalModeParams && mainState.playersDoubled);
+
+	run(() => {
+		if (mainState.fastStrategy) {
+			mainState.outputVisible = fastModeParams && mainState.currentStep >= 4;
+		} else {
+			mainState.outputVisible = normalModeParams && mainState.currentStep >= 3;
+		}
+	});
+
+	run(() => {
+		errorState.inputErrorPresent =
+			mainState.statueShape &&
+			mainState.shapesHeld.length == 2 &&
+			!validateShapes(mainState.statueShape, mainState.shapesHeld);
+	});
+
+	run(() => {
+		errorState.errorMessageVisible =
+			mainState.statueShape &&
+			mainState.shapesHeld.length &&
+			!validateShapes(mainState.statueShape, mainState.shapesHeld);
+	});
 </script>
 
 <main>
-  <div class="input-container">
-    {#if currentStep >= 0}
-      <div transition:fly={{y: 50, duration: 300}} bind:this={inputElements[0]}>
-        <StatueLocationSelector on:statueSelect={event => {
-          statueLocation = event.detail;
-          currentStep = 1;
-        }}
-        {resetEnabled}/>
-      </div>
-    {/if}
+	<div class="input-container">
+		{#if mainState.currentStep >= 0}
+			<div transition:fly={{ y: 50, duration: 300 }} bind:this={inputElements[0]}>
+				<StatueLocationSelector
+					on:statueSelect={(event) => {
+						mainState.statueLocation = event.detail;
+						mainState.currentStep = 1;
+					}}
+					{resetEnabled}
+				/>
+			</div>
+		{/if}
 
-    {#if currentStep >= 1}
-      <div transition:fly={{y: 50, duration: 300}} bind:this={inputElements[1]}>
-        <StatueShapeSelector on:selectShape={event => {
-          statueShape = event.detail;
-          currentStep = 2;
-        }}
-        {resetEnabled}/>
-      </div> 
-    {/if}
+		{#if currentStep >= 1}
+			<div transition:fly={{ y: 50, duration: 300 }} bind:this={inputElements[1]}>
+				<StatueShapeSelector
+					on:selectShape={(event) => {
+						statueShape = event.detail;
+						currentStep = 2;
+					}}
+					{mainState.resetEnabled}
+				/>
+			</div>
+		{/if}
 
-    {#if currentStep >= 2}
-      <div transition:fly={{y: 50, duration: 300}} bind:this={inputElements[2]}>
-        <ShapeSelector on:shapes={event => {
-          shapes = event.detail;
-          currentStep = fastStrategy ? 3 : 4;
-        }} 
-        {resetEnabled}/>
-      </div>
-    {/if}
-    {#if fastStrategy && currentStep >= 3 && !inputErrorPresent}
-      <div transition:fly={{y: 50, duration: 300}} bind:this={inputElements[3]}>
-        <PlayersDoubleShapesSelector on:doubledPlayers={event => { 
-          playersDoubled = event.detail;
-          currentStep = 4; 
-        }}
-        shapes={shapes}
-        {resetEnabled}/>
-      </div>
-    {/if}
- </div>
-  {#if outputVisible}
-    <div class="output-container" bind:this={outputContainer} transition:fly={{y: -50, duration: 500}}> 
-      <ChecklistStepGuide 
-       solution={fastStrategy ?
-          solutions.fastStrategy(statueLocation, statueShape, shapes, playersDoubled) :
-          solutions.normalStrategy(statueLocation, statueShape, shapes)
-       }
-        strategy={fastStrategy ? "Fast Strategy" : "Normal/LFG Strategy"}
-        on:progress={(e) => {
-          completedSteps = e.detail.completed;
-          totalSteps = e.detail.total;
-        }}
-      />
-    </div>
-  {/if}
+		{#if currentStep >= 2}
+			<div transition:fly={{ y: 50, duration: 300 }} bind:this={inputElements[2]}>
+				<ShapeSelector
+					on:shapes={(event) => {
+						shapes = event.detail;
+						currentStep = fastStrategy ? 3 : 4;
+					}}
+					{resetEnabled}
+				/>
+			</div>
+		{/if}
+		{#if fastStrategy && currentStep >= 3 && !inputErrorPresent}
+			<div transition:fly={{ y: 50, duration: 300 }} bind:this={inputElements[3]}>
+				<PlayersDoubleShapesSelector
+					on:doubledPlayers={(event) => {
+						playersDoubled = event.detail;
+						currentStep = 4;
+					}}
+					{shapes}
+					{resetEnabled}
+				/>
+			</div>
+		{/if}
+	</div>
+	{#if outputVisible}
+		<div
+			class="output-container"
+			bind:this={outputContainer}
+			transition:fly={{ y: -50, duration: 500 }}
+		>
+			<ChecklistStepGuide
+				solution={fastStrategy
+					? solutions.fastStrategy(statueLocation, statueShape, shapes, playersDoubled)
+					: solutions.normalStrategy(statueLocation, statueShape, shapes)}
+				strategy={fastStrategy ? 'Fast Strategy' : 'Normal/LFG Strategy'}
+				on:progress={(e) => {
+					completedSteps = e.detail.completed;
+					totalSteps = e.detail.total;
+				}}
+			/>
+		</div>
+	{/if}
 </main>
 {#if resetEnabled}
-  <RefreshButton onReset={reset}/>
+	<RefreshButton onReset={reset} />
 {/if}
-<FloatingNotification 
-  message={errorMessageDescription(shapes)}
-  visible={errorMessageVisible}
-  onClose={closeErrorMessage}
+<FloatingNotification
+	message={errorMessageDescription(shapes)}
+	visible={errorMessageVisible}
+	onClose={closeErrorMessage}
 />
+
 <style>
-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: var(--background-color);
-  gap: 0.5rem;
-}
+	main {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		background-color: var(--background-color);
+		gap: 0.5rem;
+	}
 
-.input-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-}
+	.input-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.5rem;
+	}
 
-.output-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  align-items: start;
-  align-content: start;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  max-width: 32rem;
-  background-color: var(--background-color);
-  padding: 0 1.25rem;
-}
+	.output-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		align-items: start;
+		align-content: start;
+		justify-content: flex-start;
+		flex-wrap: wrap;
+		max-width: 32rem;
+		background-color: var(--background-color);
+		padding: 0 1.25rem;
+	}
 </style>
-
